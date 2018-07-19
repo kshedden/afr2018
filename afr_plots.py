@@ -1,3 +1,7 @@
+"""
+Make plots of contrasts among fitted accuracy curves on logit scale.
+"""
+
 import sys
 sys.path.insert(
     0, "/afs/umich.edu/user/k/s/kshedden/statsmodels_fork/statsmodels")
@@ -7,7 +11,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 import pandas as pd
 from statsmodels.genmod.bayes_mixed_glm import BinomialBayesMixedGLM
 import numpy as np
-from afr_data import get_data, get_formula, vcf
+from afr_data import get_data, get_formula, get_vcf
 import patsy
 import pickle
 
@@ -82,6 +86,7 @@ for group in "oral", "nasal":
                 dx[tname] = np.linspace(dx[tname].min(), dx[tname].max(), 100)
                 dx["trial_num_sd"] = 0
                 dx["PC1_all_sd"] = 0
+                dx["kfirst"] = 0
 
                 dx["kw_d_kk"] = int(x[k] == "kw") - int(x[k] == "kk")
                 dx["kw_d_ww"] = int(x[k] == "kw") - int(x[k] == "ww")
@@ -128,6 +133,7 @@ for group in "oral", "nasal":
             dx[tname] = np.linspace(dx[tname].min(), dx[tname].max(), 100)
             dx["trial_num_sd"] = 0
             dx["PC1_all_sd"] = 0
+            dx["kfirst"] = 0
 
             dx["kw_d_kk"] = int(x == "kw") - int(x == "kk")
             dx["kw_d_ww"] = int(x == "kw") - int(x == "ww")
@@ -164,8 +170,8 @@ for group in "oral", "nasal":
         plt.ylabel("Logit %s difference" % yl, size=16)
         pdf.savefig()
 
-        # Accuracy against time, for single speaker/participant race combinations, differenced
-        # by trial (learning rate)
+        # Accuracy against time, for single speaker/participant race combinations,
+        # differenced by trial (learning rate)
         for j, x in enumerate(["kk", "kw", "ww", "wk"]):
 
             dxa = []
@@ -174,6 +180,7 @@ for group in "oral", "nasal":
                 dx[tname] = np.linspace(dx[tname].min(), dx[tname].max(), 100)
                 dx["trial_num_sd"] = tnum
                 dx["PC1_all_sd"] = 0
+                dx["kfirst"] = 0
 
                 dx["kw_d_kk"] = int(x == "kw") - int(x == "kk")
                 dx["kw_d_ww"] = int(x == "kw") - int(x == "ww")
@@ -227,6 +234,7 @@ for group in "oral", "nasal":
                                             100)
                     dx["trial_num_sd"] = tnum
                     dx["PC1_all_sd"] = 0
+                    dx["kfirst"] = 0
 
                     dx["kw_d_kk"] = int(x[k] == "kw") - int(x[k] == "kk")
                     dx["kw_d_ww"] = int(x[k] == "kw") - int(x[k] == "ww")
@@ -275,6 +283,7 @@ for group in "oral", "nasal":
                 dx[tname] = np.linspace(dx[tname].min(), dx[tname].max(), 100)
                 dx["trial_num_sd"] = 0
                 dx["PC1_all_sd"] = pcs
+                dx["kfirst"] = 0
 
                 dx["kw_d_kk"] = int(x == "kw") - int(x == "kk")
                 dx["kw_d_ww"] = int(x == "kw") - int(x == "ww")
@@ -326,6 +335,7 @@ for group in "oral", "nasal":
                                             100)
                     dx["trial_num_sd"] = 0
                     dx["PC1_all_sd"] = pcs
+                    dx["kfirst"] = 0
 
                     dx["kw_d_kk"] = int(x[k] == "kw") - int(x[k] == "kk")
                     dx["kw_d_ww"] = int(x[k] == "kw") - int(x[k] == "ww")

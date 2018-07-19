@@ -1,3 +1,7 @@
+"""
+Make plots of fitted accuracy curves on probability scale.
+"""
+
 import sys
 sys.path.insert(
     0, "/afs/umich.edu/user/k/s/kshedden/statsmodels_fork/statsmodels")
@@ -7,7 +11,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 import pandas as pd
 from statsmodels.genmod.bayes_mixed_glm import BinomialBayesMixedGLM
 import numpy as np
-from afr_data import get_data, fml, get_vcf
+from afr_data import get_data, get_formula, get_vcf
 import patsy
 import pickle
 
@@ -25,19 +29,29 @@ adjs = {True: "adj", False: "noadj"}[adj_time]
 vcx = get_vcf(vcs, adj_time)
 
 if use_vb:
-    pdf = PdfPages("afr_vb_nodiff.pdf")
+    pdf = PdfPages("afr_vb_nodiff_%s.pdf" % adjs)
 else:
-    pdf = PdfPages("afr_laplace_nodiff.pdf")
+    pdf = PdfPages("afr_laplace_nodiff_%s.pdf" % adjs)
 
 tname = {True: "bucket_ms_adj_sd", False: "bucket_ms_sd"}[adj_time]
 
+fml = get_formula(adj_time=adj_time)
+
 for group in "oral", "nasal":
+
+    df = get_data(group)
+
     for outcome in "bucketacc", "bucketcomp":
 
-        df = get_data(group)
+        yl = {
+            "bucketacc": "Target accuracy",
+            "bucketcomp": "Competitor accuracy"
+        }[outcome]
+
+        fmx = outcome + " ~ " + fml
 
         model = BinomialBayesMixedGLM.from_formula(
-            fml, vcx, df, vcp_p=3, fe_p=3)
+            fmx, vcx, df, vcp_p=3, fe_p=3)
 
         fid = open(group + ".pkl", "rb")
         pars = pickle.load(fid)
@@ -50,11 +64,14 @@ for group in "oral", "nasal":
             ts = pars["ts_adj"]
 
         if use_vb:
-            params = pd.read_csv("%s_params_%d_%s_%s_vb.csv" % (group, vcs, outcome, adjs))
+            params = pd.read_csv(
+                "%s_params_%d_%s_%s_vb.csv" % (group, vcs, outcome, adjs))
         else:
-            params = pd.read_csv("%s_params_%d_%s_%s_map.csv" % (group, vcs, outcome, adjs))
+            params = pd.read_csv(
+                "%s_params_%d_%s_%s_map.csv" % (group, vcs, outcome, adjs))
             cov = pd.read_csv(
-                "%s_params_%d_%s_%s_cov.csv" % (group, vcs, outcome, adjs), index_col=0)
+                "%s_params_%d_%s_%s_cov.csv" % (group, vcs, outcome, adjs),
+                index_col=0)
 
         col = params.columns.tolist()
         col[0] = "vname"
@@ -68,11 +85,10 @@ for group in "oral", "nasal":
 
                 # Save the expanded design matrix for plotting
                 dx = df.iloc[0:100, :].copy()
-                dx["bucket_ms_adj_sd"] = np.linspace(dx.bucket_ms_adj_sd.min(),
-                                                     dx.bucket_ms_adj_sd.max(),
-                                                     100)
+                dx[tname] = np.linspace(dx[tname].min(), dx[tname].max(), 100)
                 dx["trial_num_sd"] = 0
                 dx["PC1_all_sd"] = 0
+                dx["kfirst"] = 0
 
                 kw = int(speaker == "k" and participantrace == "w")
                 wk = int(speaker == "w" and participantrace == "k")
@@ -98,7 +114,7 @@ for group in "oral", "nasal":
                 fpl = 1 / (1 + np.exp(-(fv - 2 * se)))
                 fpu = 1 / (1 + np.exp(-(fv + 2 * se)))
                 label = "p=%s/s=%s" % (participantrace, speaker)
-                xx = tm + ts * dx.bucket_ms_adj_sd
+                xx = tm + ts * dx[tname]
                 plt.plot(xx, fp, label=label)
                 plt.fill_between(xx, fpl, fpu, color='grey', alpha=0.5)
 
@@ -108,7 +124,7 @@ for group in "oral", "nasal":
         plt.title(group + ": " +
                   ["word intercepts", "word intercepts+slopes"][vcs])
         plt.xlabel("Time (ms)", size=16)
-        plt.ylabel("Accuracy", size=16)
+        plt.ylabel(yl, size=16)
         pdf.savefig()
 
         # Accuracy against time, by trial number, for speaker/participant
@@ -147,7 +163,7 @@ for group in "oral", "nasal":
                     fpu = 1 / (1 + np.exp(-(fv + 2 * se)))
 
                     label = "Trial number=%.1f" % tnum
-                    xx = tm + ts * dx.bucket_ms_adj_sd
+                    xx = tm + ts * dx[tname]
                     plt.plot(xx, fp, label=label)
                     plt.fill_between(xx, fpl, fpu, color='grey', alpha=0.5)
 
@@ -158,7 +174,7 @@ for group in "oral", "nasal":
                           (group, speaker, participantrace,
                            ["word intercepts", "word intercepts+slopes"][vcs]))
                 plt.xlabel("Time (ms)", size=16)
-                plt.ylabel("Accuracy", size=16)
+                plt.ylabel(yl, size=16)
                 pdf.savefig()
 
         # Accuracy against time at various PC loadings
@@ -174,10 +190,9 @@ for group in "oral", "nasal":
                 plt.grid(True)
 
                 dx = df.iloc[0:100, :].copy()
-                dx["bucket_ms_adj_sd"] = np.linspace(dx.bucket_ms_adj_sd.min(),
-                                                     dx.bucket_ms_adj_sd.max(),
-                                                     100)
-                dx["trial_num_sd"] = df.trial_num_sd.mean()
+                dx[tname] = np.linspace(dx[tname].min(), dx[tname].max(), 100)
+                dx["trial_num_sd"] = 0
+                dx["kfirst"] = 0
 
                 dx["kw_d_kk"] = kw - kk
                 dx["kw_d_ww"] = kw - ww
@@ -200,7 +215,7 @@ for group in "oral", "nasal":
                     fpu = 1 / (1 + np.exp(-(fv + 2 * se)))
 
                     label = "PC score=%.1f" % f
-                    xx = tm + ts * dx.bucket_ms_adj_sd
+                    xx = tm + ts * dx[tname]
                     plt.plot(xx, fp, label=label)
                     plt.fill_between(xx, fpl, fpu, color='grey', alpha=0.5)
 
@@ -211,7 +226,7 @@ for group in "oral", "nasal":
                           (group, speaker, participantrace,
                            ["word intercepts", "word intercepts+slopes"][vcs]))
                 plt.xlabel("Time (ms)", size=16)
-                plt.ylabel("Accuracy", size=16)
+                plt.ylabel(yl, size=16)
                 pdf.savefig()
 
     # Histogram of participant effects
@@ -244,7 +259,7 @@ for group in "oral", "nasal":
     ws = []
     for i in range(params.shape[0]):
         w = params.iloc[i, :]
-        if w.vname.startswith("C(word)[") and "bucket_ms_adj" in w.vname:
+        if w.vname.startswith("C(word)[") and tname in w.vname:
             ws.append(w["mean"])
     if len(ws) > 0:
         ws = np.asarray(ws)

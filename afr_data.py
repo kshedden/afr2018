@@ -1,3 +1,7 @@
+"""
+Utilities for accessing data and formulas that are shared across other files.
+"""
+
 import numpy as np
 import pandas as pd
 import pickle
@@ -18,6 +22,7 @@ def get_formula(adj_time=True):
 
 
 fname = "afrikaans_perc_data.csv.gz"
+
 
 def get_vcf(vcs, adj_time):
 

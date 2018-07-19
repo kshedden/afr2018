@@ -1,5 +1,6 @@
 import sys
-sys.path.insert(0, "/afs/umich.edu/user/k/s/kshedden/statsmodels_fork/statsmodels")
+sys.path.insert(
+    0, "/afs/umich.edu/user/k/s/kshedden/statsmodels_fork/statsmodels")
 
 import numpy as np
 import pandas as pd
@@ -8,7 +9,6 @@ import statsmodels.api as sm
 import patsy
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-
 
 vcx = {"participant": "0 + C(participant)"}
 
@@ -54,19 +54,22 @@ for dt in "tones", "arrows":
             dxa = []
             for pcs in -1, 1:
                 dx = df.iloc[0:100, :].copy()
-                dx["bucket_ms_sd"] = np.linspace(dx.bucket_ms_sd.min(), dx.bucket_ms_sd.max(), 100)
+                dx["bucket_ms_sd"] = np.linspace(dx.bucket_ms_sd.min(),
+                                                 dx.bucket_ms_sd.max(), 100)
                 dx["participantrace"] = participantrace
                 dx["PC1_all_sd"] = pcs
                 dxa.append(dx)
 
             c = []
             for dd in dxa:
-                c.append(patsy.dmatrix(model1.data.design_info, dd, return_type='dataframe'))
+                c.append(
+                    patsy.dmatrix(
+                        model1.data.design_info, dd, return_type='dataframe'))
 
             plt.clf()
             plt.axes([0.1, 0.1, 0.78, 0.8])
             plt.grid(True)
-            for j,b in enumerate(c):
+            for j, b in enumerate(c):
 
                 q = b.shape[1]
                 cov = cov.iloc[0:q, 0:q]
@@ -76,15 +79,15 @@ for dt in "tones", "arrows":
                 for (k, u) in b.iterrows():
                     se.append(np.dot(u, np.dot(cov, u)))
                 se = np.sqrt(np.asarray(se))
-                fvl = fv - 2*se
-                fvu = fv + 2*se
+                fvl = fv - 2 * se
+                fvu = fv + 2 * se
 
                 fv = 1 / (1 + np.exp(-fv))
                 fvl = 1 / (1 + np.exp(-fvl))
                 fvu = 1 / (1 + np.exp(-fvu))
 
-                xx = tm + ts*dx.bucket_ms_sd
-                plt.plot(xx, fv, label=str(2*j-1))
+                xx = tm + ts * dx.bucket_ms_sd
+                plt.plot(xx, fv, label=str(2 * j - 1))
                 plt.fill_between(xx, fvl, fvu, color='grey', alpha=0.5)
 
             ha, lb = plt.gca().get_legend_handles_labels()
@@ -92,7 +95,8 @@ for dt in "tones", "arrows":
             leg.set_title("PC")
             leg.draw_frame(False)
             plt.xlabel("Time (ms)", size=16)
-            plt.title("PC's for %s, participantrace=%s\n" % (dt, participantrace))
+            plt.title(
+                "PC's for %s, participantrace=%s\n" % (dt, participantrace))
             plt.ylabel("Accuracy", size=16)
 
             pdf.savefig()
@@ -109,15 +113,16 @@ for dt in "tones", "arrows":
             for (k, u) in b.iterrows():
                 se.append(np.dot(u, np.dot(cov, u)))
             se = np.sqrt(np.asarray(se))
-            fvl = fv - 2*se
-            fvu = fv + 2*se
+            fvl = fv - 2 * se
+            fvu = fv + 2 * se
 
-            xx = tm + ts*dx.bucket_ms_sd
+            xx = tm + ts * dx.bucket_ms_sd
             plt.plot(xx, fv)
             plt.fill_between(xx, fvl, fvu, color='grey', alpha=0.5)
 
             plt.xlabel("Time (ms)", size=16)
-            plt.title("PC contrast for %s, participantrace=%s\n" % (dt, participantrace))
+            plt.title("PC contrast for %s, participantrace=%s\n" %
+                      (dt, participantrace))
             plt.ylabel("Logit accuracy difference", size=16)
 
             pdf.savefig()
@@ -130,7 +135,9 @@ for dt in "tones", "arrows":
                 dxa = []
                 for pcs in -1, 1:
                     dx = df.iloc[0:100, :].copy()
-                    dx["bucket_ms_sd"] = np.linspace(dx.bucket_ms_sd.min(), dx.bucket_ms_sd.max(), 100)
+                    dx["bucket_ms_sd"] = np.linspace(dx.bucket_ms_sd.min(),
+                                                     dx.bucket_ms_sd.max(),
+                                                     100)
                     dx["PC1_all_sd"] = pcs
                     dx["participantrace"] = participantrace
                     dx["condition"] = cond
@@ -138,7 +145,11 @@ for dt in "tones", "arrows":
 
                 c = []
                 for dd in dxa:
-                    c.append(patsy.dmatrix(model1.data.design_info, dd, return_type='dataframe'))
+                    c.append(
+                        patsy.dmatrix(
+                            model1.data.design_info,
+                            dd,
+                            return_type='dataframe'))
 
                 plt.clf()
                 plt.axes([0.1, 0.1, 0.78, 0.8])
@@ -152,25 +163,26 @@ for dt in "tones", "arrows":
                     for (k, u) in b.iterrows():
                         se.append(np.dot(u, np.dot(cov, u)))
                     se = np.sqrt(np.asarray(se))
-                    fvl = fv - 2*se
-                    fvu = fv + 2*se
+                    fvl = fv - 2 * se
+                    fvu = fv + 2 * se
 
                     fv = 1 / (1 + np.exp(-fv))
                     fvl = 1 / (1 + np.exp(-fvl))
                     fvu = 1 / (1 + np.exp(-fvu))
 
-                    xx = tm + ts*dx.bucket_ms_sd
-                    plt.plot(xx, fv, label=str(2*j-1))
+                    xx = tm + ts * dx.bucket_ms_sd
+                    plt.plot(xx, fv, label=str(2 * j - 1))
                     plt.fill_between(xx, fvl, fvu, color='grey', alpha=0.5)
 
                 plt.xlabel("Time (ms)", size=16)
 
                 ha, lb = plt.gca().get_legend_handles_labels()
                 leg = plt.figlegend(ha, lb, "center right")
-                leg .set_title("PC")
+                leg.set_title("PC")
                 leg.draw_frame(False)
 
-                plt.title("PC's for %s, condition=%s, participantrace=%s\n" % (dt, cond, participantrace))
+                plt.title("PC's for %s, condition=%s, participantrace=%s\n" %
+                          (dt, cond, participantrace))
                 plt.ylabel("Accuracy", size=16)
 
                 pdf.savefig()
@@ -187,20 +199,21 @@ for dt in "tones", "arrows":
                 for (k, u) in b.iterrows():
                     se.append(np.dot(u, np.dot(cov, u)))
                 se = np.sqrt(np.asarray(se))
-                fvl = fv - 2*se
-                fvu = fv + 2*se
+                fvl = fv - 2 * se
+                fvu = fv + 2 * se
 
-                xx = tm + ts*dx.bucket_ms_sd
+                xx = tm + ts * dx.bucket_ms_sd
                 plt.plot(xx, fv)
                 plt.fill_between(xx, fvl, fvu, color='grey', alpha=0.5)
 
                 plt.xlabel("Time (ms)", size=16)
 
-                plt.title("PC contrast for %s, condition=%s, participantrace=%s\n" % (dt, cond, participantrace))
+                plt.title(
+                    "PC contrast for %s, condition=%s, participantrace=%s\n" %
+                    (dt, cond, participantrace))
                 plt.ylabel("Logit accuracy difference", size=16)
 
                 pdf.savefig()
-
 
 out.close()
 pdf.close()
