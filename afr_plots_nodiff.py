@@ -37,6 +37,8 @@ tname = {True: "bucket_ms_adj_sd", False: "bucket_ms_sd"}[adj_time]
 
 fml = get_formula(adj_time=adj_time)
 
+xl = {True: "Adjusted time (ms)", False: "Time (ms)"}[adj_time]
+
 for group in "oral", "nasal":
 
     df = get_data(group)
@@ -123,8 +125,9 @@ for group in "oral", "nasal":
         leg.draw_frame(False)
         plt.title(group + ": " +
                   ["word intercepts", "word intercepts+slopes"][vcs])
-        plt.xlabel("Time (ms)", size=16)
+        plt.xlabel(xl, size=16)
         plt.ylabel(yl, size=16)
+        plt.ylim(0, 1)
         pdf.savefig()
 
         # Accuracy against time, by trial number, for speaker/participant
@@ -173,11 +176,68 @@ for group in "oral", "nasal":
                 plt.title("%s: speaker=%s participant=%s; %s" %
                           (group, speaker, participantrace,
                            ["word intercepts", "word intercepts+slopes"][vcs]))
-                plt.xlabel("Time (ms)", size=16)
+                plt.xlabel(xl, size=16)
                 plt.ylabel(yl, size=16)
+                plt.ylim(0, 1)
                 pdf.savefig()
 
         # Accuracy against time at various PC loadings
+        for pcd in 25, 40:
+            for participantrace in "kw":
+                for speaker in "kw":
+
+                    kw = int(speaker == "k" and participantrace == "w")
+                    wk = int(speaker == "w" and participantrace == "k")
+                    kk = int(speaker == "k" and participantrace == "k")
+                    ww = int(speaker == "w" and participantrace == "w")
+
+                    plt.clf()
+                    plt.axes([0.1, 0.1, 0.76, 0.8])
+                    plt.grid(True)
+
+                    dx = df.iloc[0:100, :].copy()
+                    dx[tname] = np.linspace(dx[tname].min(), dx[tname].max(), 100)
+                    dx["trial_num_sd"] = 0
+                    dx["kfirst"] = 0
+
+                    dx["kw_d_kk"] = kw - kk
+                    dx["kw_d_ww"] = kw - ww
+                    dx["wk_d_kk"] = wk - kk
+
+                    for f in -1, 1:
+                        dx["PC1_all_sd"] = np.percentile(df.PC1_all_sd, 50 + f*pcd)
+                        b = patsy.dmatrix(
+                            model.data.design_info, dx, return_type='dataframe')
+                        q = b.shape[1]
+                        cov = cov.iloc[0:q, 0:q]
+                        d = params["mean"].iloc[0:q]
+                        fv = np.dot(b, d)
+                        se = []
+                        for (k, u) in b.iterrows():
+                            se.append(np.dot(u, np.dot(cov, u)))
+                        se = np.sqrt(np.asarray(se))
+                        fp = 1 / (1 + np.exp(-fv))
+                        fpl = 1 / (1 + np.exp(-(fv - 2 * se)))
+                        fpu = 1 / (1 + np.exp(-(fv + 2 * se)))
+
+                        label = "%d" % (50 + f*pcd)
+                        xx = tm + ts * dx[tname]
+                        plt.plot(xx, fp, label=label)
+                        plt.fill_between(xx, fpl, fpu, color='grey', alpha=0.5)
+
+                    ha, lb = plt.gca().get_legend_handles_labels()
+                    leg = plt.figlegend(ha, lb, "center right", ncol=1, handletextpad=0.001)
+                    leg.draw_frame(False)
+                    leg.set_title("PC score")
+                    plt.title("%s: speaker=%s participant=%s, %s" %
+                              (group, speaker, participantrace,
+                               ["word intercepts", "word intercepts+slopes"][vcs]))
+                    plt.xlabel(xl, size=16)
+                    plt.ylabel(yl, size=16)
+                    plt.ylim(0, 1)
+                    pdf.savefig()
+
+        # Accuracy against time for kfirst = 0, 1
         for participantrace in "kw":
             for speaker in "kw":
 
@@ -192,14 +252,14 @@ for group in "oral", "nasal":
                 dx = df.iloc[0:100, :].copy()
                 dx[tname] = np.linspace(dx[tname].min(), dx[tname].max(), 100)
                 dx["trial_num_sd"] = 0
-                dx["kfirst"] = 0
+                dx["PC1_all_sd"] = 0
 
                 dx["kw_d_kk"] = kw - kk
                 dx["kw_d_ww"] = kw - ww
                 dx["wk_d_kk"] = wk - kk
 
-                for f in -1, 1:
-                    dx["PC1_all_sd"] = f
+                for kfirst in 0, 1:
+                    dx["kfirst"] = kfirst
                     b = patsy.dmatrix(
                         model.data.design_info, dx, return_type='dataframe')
                     q = b.shape[1]
@@ -214,7 +274,7 @@ for group in "oral", "nasal":
                     fpl = 1 / (1 + np.exp(-(fv - 2 * se)))
                     fpu = 1 / (1 + np.exp(-(fv + 2 * se)))
 
-                    label = "PC score=%.1f" % f
+                    label = "kfirst=%d" % kfirst
                     xx = tm + ts * dx[tname]
                     plt.plot(xx, fp, label=label)
                     plt.fill_between(xx, fpl, fpu, color='grey', alpha=0.5)
@@ -225,8 +285,9 @@ for group in "oral", "nasal":
                 plt.title("%s: speaker=%s participant=%s, %s" %
                           (group, speaker, participantrace,
                            ["word intercepts", "word intercepts+slopes"][vcs]))
-                plt.xlabel("Time (ms)", size=16)
+                plt.xlabel(xl, size=16)
                 plt.ylabel(yl, size=16)
+                plt.ylim(0, 1)
                 pdf.savefig()
 
     # Histogram of participant effects

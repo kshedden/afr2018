@@ -33,6 +33,8 @@ else:
 
 tname = {True: "bucket_ms_adj_sd", False: "bucket_ms_sd"}[adj_time]
 
+xl = {True: "Adjusted time (ms)", False: "Time (ms)"}[adj_time]
+
 for group in "oral", "nasal":
 
     df = get_data(group)
@@ -119,7 +121,7 @@ for group in "oral", "nasal":
             plt.fill_between(xx, fvl, fvu, color='grey', alpha=0.5)
             plt.title(label + "\n" + group + ": " +
                       ["word intercepts", "word intercepts+slopes"][vcs])
-            plt.xlabel("Time (ms)", size=16)
+            plt.xlabel(xl, size=16)
             plt.ylabel("Logit %s difference" % yl, size=16)
             pdf.savefig()
 
@@ -166,7 +168,7 @@ for group in "oral", "nasal":
         plt.fill_between(xx, fvl, fvu, color='grey', alpha=0.5)
         plt.title("Speaker/Participant: (kw-ww) - (wk-kk)\n" + group + ": " +
                   ["word intercepts", "word intercepts+slopes"][vcs])
-        plt.xlabel("Time (ms)", size=16)
+        plt.xlabel(xl, size=16)
         plt.ylabel("Logit %s difference" % yl, size=16)
         pdf.savefig()
 
@@ -216,13 +218,12 @@ for group in "oral", "nasal":
             plt.title(
                 "Speaker/Participant: %s trial contrast\n%s: %s" %
                 (x, group, ["word intercepts", "word intercepts+slopes"][vcs]))
-            plt.xlabel("Time (ms)", size=16)
+            plt.xlabel(xl, size=16)
             plt.ylabel("Logit %s difference" % yl, size=16)
             pdf.savefig()
 
         # Accuracy against time, by trial number, for speaker/participant
         # groups
-        # Accuracy against time, for speaker/participant race combinations
         for j, x in enumerate([("kk", "kw"), ("ww", "kw"), ("kk", "wk"),
                                ("ww", "wk")]):
 
@@ -270,71 +271,78 @@ for group in "oral", "nasal":
             plt.title("Speaker/Participant: %s minus %s trial contrast\n%s: %s"
                       % (x[0], x[1], group,
                          ["word intercepts", "word intercepts+slopes"][vcs]))
-            plt.xlabel("Time (ms)", size=16)
+            plt.xlabel(xl, size=16)
             plt.ylabel("Logit %s difference" % yl, size=16)
             pdf.savefig()
 
         # Accuracy against time, by PC score, for speaker/participant groups
         for j, x in enumerate(["kk", "kw", "ww", "wk"]):
+            for qd in 25, 40:
 
-            dxa = []
-            for pcs in -1, 1:
-                dx = df.iloc[0:100, :].copy()
-                dx[tname] = np.linspace(dx[tname].min(), dx[tname].max(), 100)
-                dx["trial_num_sd"] = 0
-                dx["PC1_all_sd"] = pcs
-                dx["kfirst"] = 0
+                dxa = []
+                for pcm in -1, 1:
+                    dx = df.iloc[0:100, :].copy()
+                    dx[tname] = np.linspace(dx[tname].min(), dx[tname].max(),
+                                            100)
+                    dx["trial_num_sd"] = 0
+                    dx["PC1_all_sd"] = np.percentile(df.PC1_all_sd,
+                                                     50 + pcm * qd)
+                    dx["kfirst"] = 0
 
-                dx["kw_d_kk"] = int(x == "kw") - int(x == "kk")
-                dx["kw_d_ww"] = int(x == "kw") - int(x == "ww")
-                dx["wk_d_kk"] = int(x == "wk") - int(x == "kk")
+                    dx["kw_d_kk"] = int(x == "kw") - int(x == "kk")
+                    dx["kw_d_ww"] = int(x == "kw") - int(x == "ww")
+                    dx["wk_d_kk"] = int(x == "wk") - int(x == "kk")
 
-                dxa.append(dx)
+                    dxa.append(dx)
 
-            c = []
-            for dd in dxa:
-                c.append(
-                    patsy.dmatrix(
-                        model.data.design_info, dd, return_type='dataframe'))
-            b = c[1] - c[0]
+                c = []
+                for dd in dxa:
+                    c.append(
+                        patsy.dmatrix(
+                            model.data.design_info,
+                            dd,
+                            return_type='dataframe'))
+                b = c[1] - c[0]
 
-            plt.clf()
-            plt.axes([0.1, 0.1, 0.78, 0.8])
-            plt.grid(True)
-            q = b.shape[1]
-            cov = cov.iloc[0:q, 0:q]
-            d = params["mean"].iloc[0:q]
-            fv = np.dot(b, d)
-            se = []
-            for (k, u) in b.iterrows():
-                se.append(np.dot(u, np.dot(cov, u)))
-            se = np.sqrt(np.asarray(se))
-            fvl = fv - 2 * se
-            fvu = fv + 2 * se
+                plt.clf()
+                plt.axes([0.1, 0.1, 0.78, 0.8])
+                plt.grid(True)
+                q = b.shape[1]
+                cov = cov.iloc[0:q, 0:q]
+                d = params["mean"].iloc[0:q]
+                fv = np.dot(b, d)
+                se = []
+                for (k, u) in b.iterrows():
+                    se.append(np.dot(u, np.dot(cov, u)))
+                se = np.sqrt(np.asarray(se))
+                fvl = fv - 2 * se
+                fvu = fv + 2 * se
 
-            xx = tm + ts * dx[tname]
-            plt.plot(xx, fv)
-            plt.fill_between(xx, fvl, fvu, color='grey', alpha=0.5)
+                xx = tm + ts * dx[tname]
+                plt.plot(xx, fv)
+                plt.fill_between(xx, fvl, fvu, color='grey', alpha=0.5)
 
-            plt.title(
-                "Speaker/Participant: %s PC contrast\n%s: %s" %
-                (x, group, ["word intercepts", "word intercepts+slopes"][vcs]))
-            plt.xlabel("Time (ms)", size=16)
-            plt.ylabel("Logit %s difference" % yl, size=16)
-            pdf.savefig()
+                plt.title(
+                    "Speaker/Participant: %s PC contrast (%d-%d)\n%s: %s" %
+                    (x, 50 + qd, 50 - qd, group,
+                     ["word intercepts", "word intercepts+slopes"][vcs]))
+                plt.xlabel(xl, size=16)
+                plt.ylabel("Logit %s difference" % yl, size=16)
+                pdf.savefig()
 
         # Accuracy against time, by PC score, for speaker/participant groups
         for j, x in enumerate([("kk", "kw"), ("ww", "kw"), ("kk", "wk"),
                                ("ww", "wk")]):
 
             dxa = []
-            for pcs in -1, 1:
-                for k in 0, 1:
+            for qd in 25, 40:
+                for k in -1, 1:
                     dx = df.iloc[0:100, :].copy()
-                    dx[tname] = np.linspace(dx[tname].min(), dx[tname].max(),
-                                            100)
+                    dx[tname] = np.linspace(dx[tname].min(),
+                                            dx[tname].max(), 100)
                     dx["trial_num_sd"] = 0
-                    dx["PC1_all_sd"] = pcs
+                    dx["PC1_all_sd"] = np.percentile(
+                        df.PC1_all_sd, 50 + k * qd)
                     dx["kfirst"] = 0
 
                     dx["kw_d_kk"] = int(x[k] == "kw") - int(x[k] == "kk")
@@ -347,7 +355,9 @@ for group in "oral", "nasal":
             for dd in dxa:
                 c.append(
                     patsy.dmatrix(
-                        model.data.design_info, dd, return_type='dataframe'))
+                        model.data.design_info,
+                        dd,
+                        return_type='dataframe'))
             b = c[2] - c[3] - (c[0] - c[1])
 
             plt.clf()
@@ -368,12 +378,60 @@ for group in "oral", "nasal":
             plt.plot(xx, fv)
             plt.fill_between(xx, fvl, fvu, color='grey', alpha=0.5)
 
-            plt.title("Speaker/Participant: %s minus %s PC contrast\n%s: %s" %
-                      (x[0], x[1], group,
-                       ["word intercepts", "word intercepts+slopes"][vcs]))
-            plt.xlabel("Time (ms)", size=16)
+            plt.title(
+                "Speaker/Participant: %s minus %s PC contrast (%d-%d)\n%s: %s"
+                % (x[0], x[1], 50 + qd, 50 - qd, group,
+                   ["word intercepts", "word intercepts+slopes"][vcs]))
+            plt.xlabel(xl, size=16)
             plt.ylabel("Logit %s difference" % yl, size=16)
             pdf.savefig()
+
+        # Accuracy against time, by kfirst
+        dxa = []
+        for kfirst in 0, 1:
+            dx = df.iloc[0:100, :].copy()
+            dx[tname] = np.linspace(dx[tname].min(), dx[tname].max(), 100)
+            dx["trial_num_sd"] = 0
+            dx["PC1_all_sd"] = 0
+            dx["kfirst"] = kfirst
+
+            # These are set to arbitrary values
+            dx["kw_d_kk"] = 0
+            dx["kw_d_ww"] = 0
+            dx["wk_d_kk"] = 0
+
+            dxa.append(dx)
+
+        c = []
+        for dd in dxa:
+            c.append(
+                patsy.dmatrix(
+                    model.data.design_info, dd, return_type='dataframe'))
+        b = c[1] - c[0]
+
+        plt.clf()
+        plt.axes([0.1, 0.1, 0.78, 0.8])
+        plt.grid(True)
+        q = b.shape[1]
+        cov = cov.iloc[0:q, 0:q]
+        d = params["mean"].iloc[0:q]
+        fv = np.dot(b, d)
+        se = []
+        for (k, u) in b.iterrows():
+            se.append(np.dot(u, np.dot(cov, u)))
+        se = np.sqrt(np.asarray(se))
+        fvl = fv - 2 * se
+        fvu = fv + 2 * se
+
+        xx = tm + ts * dx[tname]
+        plt.plot(xx, fv)
+        plt.fill_between(xx, fvl, fvu, color='grey', alpha=0.5)
+
+        plt.title("kfirst contrast for %s: %s" %
+                  (group, ["word intercepts", "word intercepts+slopes"][vcs]))
+        plt.xlabel(xl, size=16)
+        plt.ylabel("Logit %s difference" % yl, size=16)
+        pdf.savefig()
 
     # Histogram of participant effects
     pe = []
